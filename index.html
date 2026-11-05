@@ -1,1 +1,380 @@
 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JJ MOBILE PHONE TESTER</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080d18;color:white;
+ font-family:Arial,sans-serif;
+}
+header{
+ background:linear-gradient(120deg,#101f40,#006d91);
+ padding:22px;text-align:center;
+}
+header h2{color:#00eaff;margin:5px}
+header p{color:#c5eaff}
+.container{padding:15px}
+.info{
+ background:#14233a;padding:15px;
+ border-radius:12px;margin-bottom:15px;
+}
+.grid{
+ display:grid;
+ grid-template-columns:repeat(2,1fr);
+ gap:12px;
+}
+.card{
+ background:#15243b;border:1px solid #294568;
+ border-radius:14px;padding:18px 8px;
+ text-align:center;
+}
+.card .ico{font-size:30px}
+.card h3{font-size:14px;color:#00eaff}
+button{
+ background:#007eaa;color:white;border:0;
+ border-radius:9px;padding:12px;
+ width:100%;margin-top:8px;
+ font-weight:bold;
+}
+button:active{background:#00a8cc}
+.result{
+ background:#0d192b;padding:15px;
+ border-radius:12px;margin-top:15px;
+ white-space:pre-wrap;
+}
+#camera{
+ width:100%;border-radius:12px;
+ background:black;margin-top:10px;
+}
+#screenTest{
+ display:none;position:fixed;inset:0;
+ z-index:10;align-items:center;
+ justify-content:center;
+ font-size:25px;font-weight:bold;
+}
+#touchArea{
+ display:none;position:fixed;inset:0;
+ z-index:11;background:#101b32;
+}
+#touchArea button{width:30%;height:70px}
+footer{text-align:center;padding:20px;color:#829bb8}
+</style>
+</head>
+<body>
+
+<header>
+<h2>📱 JJ MOBILE PHONE TESTER</h2>
+<p>Mobile Hardware Diagnostic Tool</p>
+</header>
+
+<div class="container">
+
+<div class="info">
+<h3>📲 Device Information</h3>
+<div id="device">Loading...</div>
+</div>
+
+<div class="grid">
+
+<div class="card">
+<div class="ico">🖥️</div>
+<h3>DISPLAY TEST</h3>
+<button onclick="displayTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">👆</div>
+<h3>TOUCH TEST</h3>
+<button onclick="touchTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">🔊</div>
+<h3>SPEAKER TEST</h3>
+<button onclick="speakerTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">🎤</div>
+<h3>MICROPHONE TEST</h3>
+<button onclick="micTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">📷</div>
+<h3>CAMERA TEST</h3>
+<button onclick="cameraTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">📳</div>
+<h3>VIBRATION TEST</h3>
+<button onclick="vibrationTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">🔋</div>
+<h3>BATTERY TEST</h3>
+<button onclick="batteryTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">🌐</div>
+<h3>NETWORK TEST</h3>
+<button onclick="networkTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">📍</div>
+<h3>GPS TEST</h3>
+<button onclick="gpsTest()">START TEST</button>
+</div>
+
+<div class="card">
+<div class="ico">🧭</div>
+<h3>ORIENTATION TEST</h3>
+<button onclick="orientationTest()">START TEST</button>
+</div>
+
+</div>
+
+<div class="result">
+<h3>📋 TEST RESULTS</h3>
+<div id="result">Waiting for tests...</div>
+<button onclick="downloadReport()">DOWNLOAD REPORT</button>
+<button onclick="shareReport()">SHARE REPORT</button>
+<button onclick="clearReport()">CLEAR REPORT</button>
+</div>
+
+<div id="cameraBox" style="display:none">
+<h3>Camera Preview</h3>
+<video id="camera" autoplay playsinline></video>
+<button onclick="stopCamera()">STOP CAMERA</button>
+</div>
+
+</div>
+
+<div id="screenTest" onclick="nextColor()">
+TAP SCREEN TO CHANGE COLOR
+</div>
+
+<div id="touchArea">
+<h2 style="text-align:center">Touch Test</h2>
+<p style="text-align:center">Touch all four corners and the center.</p>
+<div style="display:flex;justify-content:space-around">
+<button onclick="touchPoint(this)">1</button>
+<button onclick="touchPoint(this)">2</button>
+</div>
+<div style="text-align:center;margin-top:25%">
+<button onclick="touchPoint(this)">CENTER</button>
+</div>
+<div style="display:flex;justify-content:space-around;margin-top:25%">
+<button onclick="touchPoint(this)">3</button>
+<button onclick="touchPoint(this)">4</button>
+</div>
+<button onclick="endTouch()" style="position:absolute;bottom:10px;left:5%;width:90%">FINISH</button>
+</div>
+
+<script>
+let reports=[];
+let stream=null;
+
+function addResult(name,status,details=""){
+ const time=new Date().toLocaleString();
+ const item={name,status,details,time};
+ reports.push(item);
+ document.getElementById("result").textContent=
+ reports.map(x=>x.time+" | "+x.name+" | "+x.status+
+ (x.details?" | "+x.details:"")).join("\n");
+}
+
+document.getElementById("device").innerHTML=
+ "Model: "+navigator.userAgent+
+ "<br>Platform: "+navigator.platform+
+ "<br>Screen: "+screen.width+" x "+screen.height+
+ "<br>Online: "+navigator.onLine;
+
+function displayTest(){
+ let box=document.getElementById("screenTest");
+ box.style.display="flex";
+ box.style.background="red";
+ let colors=["red","green","blue","white","black"];
+ let i=0;
+ window.nextColor=function(){
+  i++;
+  if(i>=colors.length){
+   box.style.display="none";
+   addResult("Display Test","Completed",
+   "Visual inspection required");
+  }else box.style.background=colors[i];
+ };
+}
+
+let touchCount=0;
+function touchTest(){
+ touchCount=0;
+ document.getElementById("touchArea").style.display="block";
+}
+function touchPoint(btn){
+ if(!btn.dataset.done){
+ btn.dataset.done="1";
+ btn.style.background="green";
+ touchCount++;
+ }
+}
+function endTouch(){
+ document.getElementById("touchArea").style.display="none";
+ document.querySelectorAll("#touchArea button").forEach(b=>{
+ b.dataset.done="";
+ b.style.background="";
+ });
+ addResult("Touch Test",
+ touchCount>=5?"Completed":"Incomplete",
+ touchCount+"/5 points touched");
+}
+
+function speakerTest(){
+ try{
+ let ctx=new (window.AudioContext||window.webkitAudioContext)();
+ let osc=ctx.createOscillator();
+ let gain=ctx.createGain();
+ osc.connect(gain);
+ gain.connect(ctx.destination);
+ osc.frequency.value=700;
+ gain.gain.value=0.2;
+ osc.start();
+ setTimeout(()=>{
+ osc.stop();
+ ctx.close();
+ addResult("Speaker Test","Audio played",
+ "Please confirm sound manually");
+ },1500);
+ }catch(e){addResult("Speaker Test","Failed",e.message)}
+}
+
+async function micTest(){
+ try{
+ let s=await navigator.mediaDevices.getUserMedia({audio:true});
+ s.getTracks().forEach(t=>t.stop());
+ addResult("Microphone","Permission granted",
+ "Microphone access available");
+ }catch(e){addResult("Microphone","Failed",e.message)}
+}
+
+async function cameraTest(){
+ try{
+ stream=await navigator.mediaDevices.getUserMedia({
+ video:{facingMode:"environment"},audio:false
+ });
+ let v=document.getElementById("camera");
+ v.srcObject=stream;
+ document.getElementById("cameraBox").style.display="block";
+ addResult("Camera","Permission granted",
+ "Back camera preview opened");
+ }catch(e){addResult("Camera","Failed",e.message)}
+}
+
+function stopCamera(){
+ if(stream)stream.getTracks().forEach(t=>t.stop());
+ stream=null;
+ document.getElementById("camera").srcObject=null;
+ document.getElementById("cameraBox").style.display="none";
+}
+
+function vibrationTest(){
+ if(navigator.vibrate){
+ navigator.vibrate([300,150,300]);
+ addResult("Vibration","Supported",
+ "Vibration command sent");
+ }else addResult("Vibration","Not supported",
+ "Browser or device does not support API");
+}
+
+async function batteryTest(){
+ if(navigator.getBattery){
+ try{
+ let b=await navigator.getBattery();
+ addResult("Battery","Available",
+ "Level: "+Math.round(b.level*100)+"% | Charging: "+b.charging);
+ }catch(e){addResult("Battery","Unavailable",e.message)}
+ }else addResult("Battery","Not supported",
+ "Browser does not expose Battery API");
+}
+
+function networkTest(){
+ let c=navigator.connection;
+ addResult("Network","Available",
+ "Online: "+navigator.onLine+
+ (c?" | Type: "+c.effectiveType:""));
+}
+
+function gpsTest(){
+ if(!navigator.geolocation){
+ addResult("GPS","Not supported");return;
+ }
+ navigator.geolocation.getCurrentPosition(
+ p=>addResult("GPS","Permission granted",
+ "Accuracy: "+Math.round(p.coords.accuracy)+" metres"),
+ e=>addResult("GPS","Failed",e.message),
+ {enableHighAccuracy:true,timeout:15000}
+ );
+}
+
+function orientationTest(){
+ let done=false;
+ function handler(e){
+ if(done)return;
+ done=true;
+ addResult("Orientation","Available",
+ "Alpha: "+e.alpha+" Beta: "+e.beta+
+ " Gamma: "+e.gamma);
+ window.removeEventListener("deviceorientation",handler);
+ }
+ window.addEventListener("deviceorientation",handler);
+ setTimeout(()=>{
+ if(!done)addResult("Orientation","No response",
+ "Sensor may be unavailable or permission required");
+ },3000);
+}
+
+function downloadReport(){
+ let content="JJ MOBILE PHONE TEST REPORT\n\n"+
+ reports.map(x=>JSON.stringify(x)).join("\n");
+ let blob=new Blob([content],{type:"text/plain"});
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="JJ_Phone_Test_Report.txt";
+ a.click();
+ URL.revokeObjectURL(a.href);
+}
+
+async function shareReport(){
+ let textReport="JJ MOBILE PHONE TEST REPORT\n"+
+ reports.map(x=>x.name+" : "+x.status+" "+x.details).join("\n");
+ if(navigator.share){
+ try{await navigator.share({title:"Phone Test Report",text:textReport})}
+ catch(e){}
+ }else if(navigator.clipboard){
+ await navigator.clipboard.writeText(textReport);
+ alert("Report copied. You can share it on WhatsApp.");
+ }else alert("Sharing not supported");
+}
+
+function clearReport(){
+ reports=[];
+ document.getElementById("result").textContent="Waiting for tests...";
+}
+</script>
+
+<footer>
+JJ_MOBILE_PHONE_TESTER<br>
+Mobile Diagnostic Application
+</footer>
+
+</body>
+</html>
